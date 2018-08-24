@@ -1,0 +1,28 @@
+# Site settings
+title:          Fluent Python Study
+description:    "디비랩 스터디 사이트"
+baseurl:        "/"
+url:            "http://hydbpython.github.io"
+
+# Author
+author:
+  name:         Alghost
+  email:        alghost.lee@gmail.com
+
+# Build settings
+markdown:       kramdown
+
+# Assets
+sass:
+  sass_dir:     _sass
+  style:        compressed
+
+# Gems
+plugins:
+  - jekyll-feed
+  - jekyll-paginate
+  # - jemoji #Uncomment this to allow emoji in your post
+
+# Permalinks
+permalink:      /:year-:month-:day/:title
+paginate:       5
