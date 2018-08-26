@@ -15,7 +15,6 @@ layout: default
       function searchFunc(event) {
 		event = event || window.event;
         let keyID = (event.which) ? event.which : event.keyCode;
-console.log(keyID)
         if(keyID == 13) {
           let keyword = encodeURIComponent($("#searchtext").val());
           location.href = "/result?query=" + keyword;
