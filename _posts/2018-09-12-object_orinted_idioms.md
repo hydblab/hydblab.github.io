@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "시퀀스"
+title: "객체지향 관용구"
 author: "Polishedwh"
 ---
 
