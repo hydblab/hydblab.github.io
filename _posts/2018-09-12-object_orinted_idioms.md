@@ -122,7 +122,7 @@ True
 False
 {% endhighlight %}
 
-- shallow copy example[shalowEX]
+- shallow copy example[shallowEX]
 
 {% highlight python %}
 l1 = [3, [66, 55, 44], (7, 8, 9)]
