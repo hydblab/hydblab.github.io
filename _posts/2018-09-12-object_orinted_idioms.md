@@ -390,7 +390,7 @@ False
 
 <hr>
 ## 약한참조
-- 객체를 참조하고 있어도 refount에는 반영되지 않는다.
+- 객체를 참조하고 있어도 refcount에는 반영되지 않는다.
 - 약한참조를 하고있다고 해도 refcount에 반영되지 않기 때문에 가비지컬렉션된다.
 - 캐시 등에 주로 쓰이는 형태 이다.
 - weakref.ref 모듈을 직접쓰기보다는 weakkeydictionary, weakvaluedictionary, weakset, finalize()를 이용하는게 좋다.
@@ -456,10 +456,10 @@ class Cheese:
 - 모든 객체(또는 referent)에 WeakRef를 사용 할 수 있는 것은 아니다.
   - 기본 list,  dict, int, tuple은 사용할 수 없다.
   - set 인스턴스, 사용자 지정 타입은 사용할 수 있다.
-    - 위 예제에서 Cheese 클래스가 필요했던 이유
+    - 위 예제에서 Cheese 클래스가 필요했던 이유(subclass)
   - int, tuple 객체는 subclass로 만들어도 사용 할 수 없다.
 
-  - list, dict를 위하나 subclass 사용 예
+  - list, dict를 위한 subclass 사용 예
 {% highlight python %}
 class MyList(list):
     """list subclass whose instances may be weakly referenced"""
@@ -470,4 +470,4 @@ wref_to_a_list = weakref.ref(a_list)
 {% endhighlight %}
 
 
-[shallow copy example]:http://www.pythontutor.com/visualize.html#code=l1%20%3D%20%5B3,%20%5B66,%2055,%2044%5D,%20%287,%208,%209%29%5D%0Al2%20%3D%20list%28l1%29%0Al1.append%28100%29%0Al1%5B1%5D.remove%2855%29%0Aprint%28'l1%3A',%20l1%29%0Aprint%28'l2%3A',%20l2%29%0Al2%5B1%5D%20%2B%3D%20%5B33,%2022%5D%0Al2%5B2%5D%20%2B%3D%20%2810,%2011%29%0Aprint%28'l1%3A',%20l1%29%0Aprint%28'l2%3A',%20l2%29&cumulative=false&curInstr=1&heapPrimitives=nevernest&mode=display&origin=opt-frontend.js&py=3&rawInputLstJSON=%5B%5D&textReferences=false
+[shallow]: http://www.pythontutor.com/visualize.html#code=l1%20%3D%20%5B3,%20%5B66,%2055,%2044%5D,%20%287,%208,%209%29%5D%0Al2%20%3D%20list%28l1%29%0Al1.append%28100%29%0Al1%5B1%5D.remove%2855%29%0Aprint%28'l1%3A',%20l1%29%0Aprint%28'l2%3A',%20l2%29%0Al2%5B1%5D%20%2B%3D%20%5B33,%2022%5D%0Al2%5B2%5D%20%2B%3D%20%2810,%2011%29%0Aprint%28'l1%3A',%20l1%29%0Aprint%28'l2%3A',%20l2%29&cumulative=false&curInstr=1&heapPrimitives=nevernest&mode=display&origin=opt-frontend.js&py=3&rawInputLstJSON=%5B%5D&textReferences=false
