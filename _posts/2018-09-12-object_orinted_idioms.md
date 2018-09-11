@@ -122,7 +122,7 @@ True
 False
 {% endhighlight %}
 
-- shallow copy example
+- shallow copy example[shalowEX]
 
 {% highlight python %}
 l1 = [3, [66, 55, 44], (7, 8, 9)]
@@ -470,4 +470,4 @@ wref_to_a_list = weakref.ref(a_list)
 {% endhighlight %}
 
 
-[shallow]: http://www.pythontutor.com/visualize.html#code=l1%20%3D%20%5B3,%20%5B66,%2055,%2044%5D,%20%287,%208,%209%29%5D%0Al2%20%3D%20list%28l1%29%0Al1.append%28100%29%0Al1%5B1%5D.remove%2855%29%0Aprint%28'l1%3A',%20l1%29%0Aprint%28'l2%3A',%20l2%29%0Al2%5B1%5D%20%2B%3D%20%5B33,%2022%5D%0Al2%5B2%5D%20%2B%3D%20%2810,%2011%29%0Aprint%28'l1%3A',%20l1%29%0Aprint%28'l2%3A',%20l2%29&cumulative=false&curInstr=1&heapPrimitives=nevernest&mode=display&origin=opt-frontend.js&py=3&rawInputLstJSON=%5B%5D&textReferences=false
+[shallowEX]: http://www.pythontutor.com/visualize.html#code=l1%20%3D%20%5B3,%20%5B66,%2055,%2044%5D,%20%287,%208,%209%29%5D%0Al2%20%3D%20list%28l1%29%0Al1.append%28100%29%0Al1%5B1%5D.remove%2855%29%0Aprint%28'l1%3A',%20l1%29%0Aprint%28'l2%3A',%20l2%29%0Al2%5B1%5D%20%2B%3D%20%5B33,%2022%5D%0Al2%5B2%5D%20%2B%3D%20%2810,%2011%29%0Aprint%28'l1%3A',%20l1%29%0Aprint%28'l2%3A',%20l2%29&cumulative=false&curInstr=1&heapPrimitives=nevernest&mode=display&origin=opt-frontend.js&py=3&rawInputLstJSON=%5B%5D&textReferences=false
