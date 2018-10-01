@@ -176,4 +176,27 @@ class Vector2d:
 - 객체 1천 만 개(Vector2d를 예로) 를 생성했을 때 dict의 메모리는 1.5GB 의 메모리를 사용하지만, slots은 655MB 수준으로 절감된 효과를 보였다.
 
 ## 클래스 속성 오버라이드
-- 보완 예정
+{% highlight python %}
+from vector2d_v3 import Vector2d
+
+v1 = Vector2d(1.1, 2.2)
+dumpd = bytes(v1)       
+print(dumpd)    #b'\x00\x00\x00\x00\x00\x00\xf0?'
+
+v1.typecode = 'f'
+dumpd2 = bytes(v1)
+print(dumpd2)   #b'\x00\x00\x80?'
+print(Vector2d.typecode)    #'d'
+{% endhighlight %}
+
+- 클래스의 속성은 모든 서브클래스가 상속하므로, 클래스 데이터 속성을 커스터마이즈할 때, 클래스를 상속하는 것이 일반적이다.
+
+{% highlight python %}
+class ShortVector2d(Vector2d):
+    typecode = 'f'
+
+sv = ShortVector2d(1, 2)
+dumpd = bytes(sv)
+print(dumpd)    #b'\x00\x00\x80?'       
+
+{% endhighlight %}
