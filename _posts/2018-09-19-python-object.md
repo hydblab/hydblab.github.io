@@ -183,17 +183,20 @@ v1 = Vector2d(1.1, 2.2)
 dumpd = bytes(v1)       
 print(dumpd)    #b'\x00\x00\x00\x00\x00\x00\xf0?'
 
-v1.typecode = 'f'
+v1.typecode = 'f'   # 객체의 속성을 추가하는 것이다.  self.typecode = Vector2d.typecode를 의미
 dumpd2 = bytes(v1)
 print(dumpd2)   #b'\x00\x00\x80?'
 print(Vector2d.typecode)    #'d'
 {% endhighlight %}
 
+- 파이썬은 클래스 속성값을 객체 속성의 기본값으로 사용한다.
 - 클래스의 속성은 모든 서브클래스가 상속하므로, 클래스 데이터 속성을 커스터마이즈할 때, 클래스를 상속하는 것이 일반적이다.
+- 객체의 속성을 생성해서 오버라이드 하는 방법과 클래스를 상속 받음으로써 클래스 수준에서 덮어쓰는 방법이 있다.
+
 
 {% highlight python %}
 class ShortVector2d(Vector2d):
-    typecode = 'f'
+    typecode = 'f'  # typecode 클래스 속성만 덮어 쓰는 것이다.
 
 sv = ShortVector2d(1, 2)
 dumpd = bytes(sv)
