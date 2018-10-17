@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "객체지향 관용구"
+title: "컨텍스트 관리자와 else 블록"
 author: "Polishedwh"
 ---
 
