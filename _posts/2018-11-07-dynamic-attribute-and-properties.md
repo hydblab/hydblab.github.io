@@ -119,7 +119,7 @@ Traceback (most recent call last):
 KeyError: 'flavor'
 {% endhighlight %}
 
--
+- FrozenJSON 구현(읽기만 구현되어있다, 필자가 직접 구현한 것)
 {% highlight python %}
 from collections import abc
 class FrozenJSON:
@@ -128,25 +128,30 @@ class FrozenJSON:
     """
 
     def __init__(self, mapping):
-        self.__data = dict(mapping)
-    def __getattr__(self, name):
+        self.__data = dict(mapping) # 매핑 인수로부터 딕서너리 생성(딕서너리 메서드사용가능, 원본 변경 방지) 
+
+    def __getattr__(self, name): # name 속성이 없을때만 호출됨
         if hasattr(self.__data, name):
-            return getattr(self.__data, name)
+            return getattr(self.__data, name) # __data에 들어 있는 객체가 name 속성을 가지고 있다면 그 속성을 반환(key()가 처리하는 방식과 동일)
         else:
-            return FrozenJSON.build(self.__data[name])
+            return FrozenJSON.build(self.__data[name]) # 아니면 self.__data에서 name을 키로 사용해 항목을 가져와 FrozenJSON.buid()의 결과 반환 
+
     @classmethod
-    def build(cls, obj):
-        if isinstance(obj, abc.Mapping):
+    def build(cls, obj): # 대안 생성자로 일반적으로 @classmethod 데커레이터가 사용됨
+        if isinstance(obj, abc.Mapping): # obj가 매핑형이면 매핑형 객체를 매개변수로 FrozenJSON 객체를 생성
             return cls(obj)
-        elif isinstance(obj, abc.MutableSequence):
+        elif isinstance(obj, abc.MutableSequence): # MutableSequence형이면 리스트이므로 obj 안에 있는 모든 항목에 build()메서드를 적용해서 생성된 객체를 리스트로 반환
             return [cls.build(item) for item in obj]
-        else:
-            return obj
+        else: # 매핑도 아니고 리스트도 아니면 그대로 반환
+            return obj 
 {% endhighlight %}
+
+- Note : 데이터를 JSON에서 가져왔기 때문에 컬렉션형은 dict, list만 존재한다.
 
 #### 잘못된 속성명 문제
 
--
+- 파이썬 키워드가 속성명으로 사용된 경우에 처리할 수 없다.
+  - class가 파이썬의 예약어라 grad.class 속성을 읽을 수 없다.
 {% highlight python %}
 >>> grad = FrozenJSON({'name': 'Jim Bo', 'class': 1982})
 --------------------------------------------------------
@@ -156,10 +161,10 @@ class FrozenJSON:
              ^
 SyntaxError: invalid syntax
 --------------------------------------------------------
->>> getattr(grad, 'class')
+>>> getattr(grad, 'class') # 이렇게 읽을수는 있다.
 1982
 --------------------------------------------------------
->>> grad.class\_
+>>> grad.class_ # FrozenJSON.__init__에서 파이썬 키워드인지 검사하고 파이썬 키워드라면 _를 붙여주면 좋다.
 1982
 {% endhighlight %}
 
@@ -169,10 +174,10 @@ def __init__(self, mapping):
     self.__data = {}
     for key, value in mapping.items():
         if keyword.iskeyword(key):
-            key += '_'
+            key += '_' # '_'를 붙여줌
         self.__data[key] = value
 --------------------------------------------------------
->>> x = FrozenJSON({'2be':'or not'})
+>>> x = FrozenJSON({'2be':'or not'}) # 올바른 파이썬 식별자가 아닐 때도 문제가 생긴다.
 >>> x.2be
   File "<stdin>", line 1
     x.2be
@@ -180,8 +185,20 @@ def __init__(self, mapping):
 SyntaxError: invalid syntax
 {% endhighlight %}
 
+- Note :  파이썬 3의 str 클래스는 STR.isidentifier() 메서드로 정당한 식별자를 탐지할 수 있다.
+
 #### __new__()를 이용한 융통성 있는 객체 생성
--
+
+- 실제로 객체를 생성하는 특별 메서드는 __new__() 이다.
+  - 클래스 메서드이지만 특별 메서드라 @classmethod 테커레이터를 사용하지 않는다.
+  - 반드시 객체를 반환한다.
+  - 반환된 객체가 __init__()의 첫 번째 인수인 self로 전달된다.
+  - __init__()은 호출 될 때 객체를 받고 아무것도 반환할 수 없기 때문에 사실 초기화 메서드다.
+
+- __new__() 메서드는 다른 클래스으ㅔ 객체도 반환 할 수 있다.
+  - __init__()을 호출하지 않는다.
+
+-  객체를 생성하는 의사코드
 {% highlight python %}
 \# pseudo-code for object construction
 def object_maker(the_class, some_arg):
@@ -194,7 +211,7 @@ x = Foo('bar')
 x = object_maker(Foo, 'bar')
 {% endhighlight %}
 
--
+- FrozenJSON 객체든 아니든 새로운 객체를 생성하는 대신 __new__() 사용
 {% highlight python %}
 from collections import abc
 
