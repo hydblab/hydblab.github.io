@@ -212,6 +212,7 @@ x = object_maker(Foo, 'bar')
 {% endhighlight %}
 
 - FrozenJSON 객체든 아니든 새로운 객체를 생성하는 대신 __new__() 사용
+  - build() 클래스에서 처리하던 내용을 __new__()메스드로 옮김
 {% highlight python %}
 from collections import abc
 
@@ -220,10 +221,10 @@ class FrozenJSON:
         using attribute notation
     """
 
-    def __new__(cls, arg):
+    def __new__(cls, arg): # 첫 번재로 받는 인수는 클래스 자신, 나머지 인수는 __init__()과 동일하게 받음 
         if isinstance(arg, abc.Mapping):
-            return super().__new__(cls)
-        elif isinstance(arg, abc.MutableSequence):
+            return super().__new__(cls) # 슈퍼 클래스의 __new__()에 위임, FrozenFSON을 인수로 전달
+        elif isinstance(arg, abc.MutableSequence): #  나머지는 build()와 동일
             return [cls(item) for item in arg]
         else:
             return arg
@@ -237,170 +238,194 @@ class FrozenJSON:
         if hasattr(self.__data, name):
             return getattr(self.__data, name)
         else:
-            return FrozenJSON(self.__data[name])
+            return FrozenJSON(self.__data[name]) # 기존에는 FrozenJSON.build() 호출 
 {% endhighlight %}
+
+- Note
+  - __init__()은 첫번째 인수는 self
+  - FrozenJSON.__new__() 안에서 super().__new__(cls)가 object.(FrozenJSON)을 호출하는 셈이됨
+  - 인터프리터 내부에서 object.__new__()가 객체를 생성하지만, 생성된 객체의 __class__속성은 FrozenJSON을 가리킴
 
 #### shelve를 이용해서 OSCON 피드 구조 변경하기
--
+
+- shelve
+  - shelve.open()은 shelve.Shelf 객체를 반환한다.
+  - dbm 모듈을 이용해서 키-값 객체를 보관하는 단순 객체이다.
+
+- 특징
+  - 매핑형이 제공하는 핵심 메서드를 제공한다.
+    - abc.MutableMapping 클래스를 상속 받는다.
+  - sync(), close()등 입출력 관리 메서드를 제공한다.
+  - 새로운 값이 키에 할당될 때마다 키와 값이 지정된다.
+  - 키는 반드시 문자열이어야 한다.
+  - 값은 반드시 pickle 모듈이 처리할 수 있는 객체여야 한다.
+
+- 기능 시험(위 예제 문제 해결)
+  - 이전 예제는  인덱스 40번에 있는 이벤트에 두 명의 발표자(3471, 5199)가 있지만, 발표자를 찾기 쉽지 않다.
 {% highlight python %}
 >>> import shelve
->>> db = shelve.open(DB_NAME)
->>> if CONFERENCE not in db:
-...     load_db(db)
+>>> db = shelve.open(DB_NAME) # 기존 데이터베이스 파일을 열거나 새로 만든다.
+>>> if CONFERENCE not in db: # 테이터가 있는지 알려진 키로 접근해 확인한다.
+...     load_db(db) # 데이터베이스가 비어 있으면 데이터베이스를 로딩한다.
 ...
->>> speaker = db['speaker.3471']
->>> type(speaker)
+>>> speaker = db['speaker.3471'] # speaker레코드를 가져온다.
+>>> type(speaker) # Record 클래스의 객체를 반환한다.(아래 예제)
 <class 'schedule1.Record'>
->>> speaker.name, speaker.twitter
+>>> speaker.name, speaker.twitter # Record객체는 하위 JSON 레코드의 필드를 반영한 속성을 구현한다.
 ('Anna Martelli Ravenscroft', 'annaraven')
->>> db.close()
-{% endhighlight %}
+>>> db.close() # 반드시 닫아야한다.
+{% endhighlight %}  
 
--
+- shelve.Shelf에 저장된 OSCON 일정 테이터 보기
 {% highlight python %}
 import warnings
 
-import osconfeed
+import osconfeed # osconfeed.py 모듈을 로드 
 
 DB_NAME = 'data/schedule1_db'
 CONFERENCE = 'conference.115'
 
 class Record:
     def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
+        self.__dict__.update(kwargs) # 키워드 인수로부터 생성된 속성으로 객체를 생헝할때 사용
+
     def load_db(db):
-        raw_data = osconfeed.load()
+        raw_data = osconfeed.load() # 티스크에 사본이 없는 경우 웹에서 JSON 피드를 가져올 수 있음 
         warnings.warn('loading ' + DB_NAME)
-        for collection, rec_list in raw_data['Schedule'].items():
-            record_type = collection[:-1]
+        for collection, rec_list in raw_data['Schedule'].items(): # conferences, events 등 컬렉션을 반복 
+            record_type = collection[:-1] # 컬레션명에서 마지막의 's' 제거하고 record_type으로 설정 
             for record in rec_list:
-                key = '{}.{}'.format(record_type, record['serial'])
-                record['serial'] = key
-                db[key] = Record(**record)
+                key = '{}.{}'.format(record_type, record['serial']) # record_type과 'serial'필드로부터 key를 생성 
+                record['serial'] = key # 'serial' 필드를 새로 생성한 key로 설정 
+                db[key] = Record(**record) # Record객체를 생성하고 그 key로 데이터베이스에 저장
 {% endhighlight %}
 
+- Note
+  - __slots__ 속성이 클래스에 선언되어 있지 않은한, 객체의 __dict__에 속성들이 들어있다. 
+  - 객체의 __dict__를 직접 매핑형으로 설정하면, 속성 묶음을 빠르게 정의할 수 있다.
+
 #### 프로퍼티를 이용해서 연결된 레코드 읽기
--
+
+- shelf에서 가져온 event 레코드의 venue나 speakers속성을 읽을 때 일련번호 대신 온전한 레코드를 객체로 반환하도록 만들어보자.
+
+- schedule2.py의 doctest 일부
+
 {% highlight python %}
->>> DbRecord.set_db(db)
->>> event = DbRecord.fetch('event.33950')
->>> event
+>>> DbRecord.set_db(db) # Record를 상속해서 데이터베이스를 지원한다. DbRecord에 데이터베이스에 대한 참조를 전달해야 한다. 
+>>> event = DbRecord.fetch('event.33950') # 어떠한 종류의 레코드도 가져옴 
+>>> event # DbRecord 클래스를 상속한 Event 클래스 객체임
 <Event 'There *Will* Be Bugs'>
->>> event.venue
+>>> event.venue # DbRecord 객체가 반환됨 
 <DbRecord serial='venue.1449'>
->>> event.venue.name
+>>> event.venue.name # 이렇게 자동으로 참조소환하는 것이 예제의 목표 
 'Portland 251'
->>> for spkr in event.speakers:
+>>> for spkr in event.speakers: # 각 발표자의 DbRecord 객체도 가져올 수 있음 
 ...     print('{0.serial}: {0.name}'.format(spkr))
 ...
 speaker.3471: Anna Martelli Ravenscroft
 speaker.5199: Alex Martelli
 {% endhighlight %}
 
--
+- schedule2.py: 임포트, 상수, 개선된 Record 클래스
 {% highlight python %}
 import warnings
-import inspect
-
+import inspect #load_db() 함수에서 inspect 모듈을 사용
 import osconfeed
 
-DB_NAME = 'data/schedule2_db'
+DB_NAME = 'data/schedule2_db' # 새로 생성해서 사용 
 CONFERENCE = 'conference.115'
 
 class Record:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-    def __eq__(self, other):
+
+    def __eq__(self, other): # 배교하는데 유용하게 사용됨
         if isinstance(other, Record):
             return self.__dict__ == other.__dict__
         else:
             return NotImplemented
 {% endhighlight %}
 
-- Record
-
-- DbRecord
-
-- Event
-
--
+- schedule2.py: MissingDatabaseError, DbRecord 클래스
 {% highlight python %}
 class MissingDatabaseError(RuntimeError):
-    """Raised when a database is required but was not set."""
+    """Raised when a database is required but was not set.""" # pass문 보다 이렇게 하는게 좋다. 
 
-class DbRecord(Record):
-    __db = None
+class DbRecord(Record): # Record클래스를 상속
 
-    @staticmethod
+    __db = None # shelve.Shelf 데이터베이스에 대한 참조를 보관 
+
+    @staticmethod # 정적 메서드로 호출 방법에 무관하게 언제나 동일한 결과가 나옴을 명시 
     def set_db(db):
-        DbRecord.__db = db
+        DbRecord.__db = db # Event.set_db()를 호출해도 DbRecord클래스에 __db 속성이 설정됨
 
-    @staticmethod
+    @staticmethod # 정적 메서드로 호출 방법에 무관하게 언제나 DbRecord.__db가 참조하는 객체를 반환 
     def get_db():
         return DbRecord.__db
 
-    @classmethod
+    @classmethod # 클래스 메서드이므로 서브클래스에서 쉽게 커스터마이즈 할 수 있음 
     def fetch(cls, ident):
         db = cls.get_db()
         try:
-            return db[ident]
+            return db[ident] # ident 키를 가진 레코드를 가져옴 
         except TypeError:
-            if db is None:
+            if db is None: # TypeError가 발생하고 db가 None이면 사용자 정의 예외를 발생시킴 
                 msg = "database not set; call '{}.set_db(my_db)'"
                 raise MissingDatabaseError(msg.format(cls.__name__))
-            else:
+            else: # ?? 
                 raise
+
      def __repr__(self):
-         if hasattr(self, 'serial'):
+         if hasattr(self, 'serial'): # 레코드에 'serial' 속성이 있으면 문자열 표현 안에 사용함 
              cls_name = self.__class__.__name__
              return '<{} serial={!r}>'.format(cls_name, self.serial)
          else:
-             return super().__repr__()
+             return super().__repr__() # 없으면 슈퍼클래스의 __repr__()메서드를 사용 
 {% endhighlight %}
 
--
+- schedule2.py: Event클래스
 {% highlight python %}
-class Event(DbRecord):
+class Event(DbRecord): # DbRecord 클래스를 상속 
 
     @property
      def venue(self):
          key = 'venue.{}'.format(self.venue_serial)
-         return self.__class__.fetch(key)
+         return self.__class__.fetch(key) # venue_serial 속성으로부터 key를 생성하고 DbRecord에서 상속한 fetch() 클래스 메서드에 전달 
 
     @property
     def speakers(self):
-        if not hasattr(self, '_speaker_objs'):
-            spkr_serials = self.__dict__['speakers']
-            fetch = self.__class__.fetch
+        if not hasattr(self, '_speaker_objs'): # 레코드에 _speaker_objs 속성이 있는지 검사 
+            spkr_serials = self.__dict__['speakers'] # 없으면 __dict__객체에서 'speakers' 속성을 가져옴 
+            fetch = self.__class__.fetch # 클래스 메서드에 대한 참조를 가져옴 
             self._speaker_objs = [fetch('speaker.{}'.format(key))
-                                  for key in spkr_serials]
-        return self._speaker_objs
+                                  for key in spkr_serials] # speaker 레코드의 리스트로 self._speaker_objs를 설정 
+        return self._speaker_objs # 리스트 반환 
 
     def __repr__(self):
-        if hasattr(self, 'name'):
+        if hasattr(self, 'name'): # 레코드에 'name'속성이 있으면 문자열로 표현
             cls_name = self.__class__.__name__
             return '<{} {!r}>'.format(cls_name, self.name)
         else:
-            return super().__repr__()
+            return super().__repr__() # 없으면 슈퍼클래스의 __repr__() 메서드를 호출 
 {% endhighlight %}
 
--
+- schedule2.py: load_db() 함수
 {% highlight python %}
 def load_db(db):
     raw_data = osconfeed.load()
     warnings.warn('loading ' + DB_NAME)
     for collection, rec_list in raw_data['Schedule'].items():
-        record_type = collection[:-1]
-        cls_name = record_type.capitalize()
-        cls = globals().get(cls_name, DbRecord)
-        if inspect.isclass(cls) and issubclass(cls, DbRecord):
-            factory = cls
+        record_type = collection[:-1] #  schedule1.py와 동일  
+        cls_name = record_type.capitalize() # 클래스명으로 사용하기 위해 record_type의 첫 글자를 대문자로 변경 
+        cls = globals().get(cls_name, DbRecord) # 전역 범위에서 클래스명의 객체를 가져옴, 없다면 DbRecord객체를 가져옴 
+        if inspect.isclass(cls) and issubclass(cls, DbRecord): #  클래스인지 DbRecord의 서브 클래스인지 검사
+            factory = cls # factory 클래스에 바인딩, factory는 record_type에 따라 DbRecord의 서브 클래스가 될 수도 있음
         else:
-            factory = DbRecord
-        for record in rec_list:
+            factory = DbRecord # factory를 DbRecord에 바인딩 
+        for record in rec_list: # key를 생성하고 레코드를 저장
             key = '{}.{}'.format(record_type, record['serial'])
             record['serial'] = key
-            db[key] = factory(**record)
+            db[key] = factory(**record) # 데이터베이스에 저장할 객체는 factory로 생성됨, record_type에 따라 DbRecord나 DbRecord의 서브 클래스 가 될 수 있음 
 {% endhighlight %}
 
 <hr>
