@@ -5,6 +5,7 @@ author: "Polishedwh"
 ---
 ## 동적 속성과 프로퍼티
 
+### 1부
 ### 동적 속성을 이용한 데이터 랭글링
 
 - osconfeed.json의 JSON 샘플 레코드 
@@ -429,15 +430,27 @@ def load_db(db):
 {% endhighlight %}
 
 <hr>
-### 속성을 검증하기 위해 프로퍼티 사용하기
--
-{% highlight python %}
+### 2부
 
+- 1부에서 모호했던 부분을 다시 정리하고 발표후에 문서를 수정하겠습니다.
+
+### 속성을 검증하기 위해 프로퍼티 사용하기
+
+- property는 파이썬 내장함수이다.
+- getter, setter, deleter 를 만들어 속성을 사용할 수 있다.
+  - property() 생성자의 형태
+{% highlight python %}
+property(fget=None, fset=None, fdel=None, doc=None)
 {% endhighlight %}
+
+- 이번 장 에서는 읽고 쓸수 있는 프로퍼티를 구현한다.
 
 #### LineItem버전 #1: 주문 항목 클래스
 
--
+- 유기농산물을 대량으로 판매하는 상점을 예로들어 설명한다.
+
+- bulkfood_v1.py: 기본 LineItem 클래스
+  - 설명을위해 사용할 일반 클래스이다. 
 {% highlight python %}
 class LineItem:
 
@@ -447,10 +460,12 @@ class LineItem:
         self.price = price
 
     def subtotal(self):
-        return self.weight * self.price
+        return self.weight * self.price # self.weight가 음수이면 subtotal의 리턴값이 음수가 된다.
 {% endhighlight %}
 
--
+- bulkfood_v1.py: 기본 LineItem 클래스의 문제
+  - 무게가 음수이면 합계가 음수가되는 버그를 갖고있는 클래스이다.(가격이 음수가 되는 경우는 뒤에서(20장) 설명한다.)
+  - 실제로 아마존에서 책 구매 갯수를 음수로 주문할 수 있었던 버그가 있었다.
 {% highlight python %}
 >>> raisins = LineItem('Golden raisins', 10, 6.95)
 >>> raisins.subtotal()
@@ -462,30 +477,35 @@ class LineItem:
 
 #### LineItem버전 #2: 검증하는 프로퍼티
 
--
+- 문제 해결을 위한 방법
+  - 자바 등에서는 interface를 수정해 처리한다.
+  - *파이썬*에서는 처리할 데이터를 프로퍼티로 지정해서 처리한다.
+
+- bulkfood_v2.py:weight프로퍼티를 가진 LineItem
+  - getter, setter를 구현하지만, "Item.weight = 20" 과 같이 사용할 수 있기때문에 인터페이스가 바뀌지는 않는다.
 {% highlight python %}
 class LineItem:
     def __init__(self, description, weight, price):
         self.description = description
-        self.weight = weight
+        self.weight = weight # __init__에서부터 weight.setter가 사용된다. 객체 생성시에도 weight에 음수값을 지정할 수 없게 하였다. 
         self.price = price
 
     def subtotal(self):
         return self.weight * self.price
 
-    @property
-    def weight(self):
-        return self.__weight
+    @property # 게터메서드
+    def weight(self): # 게터 함수명이 속성명으로 사용되는 특징을 보여준다. (property 게터함수이름 == 속성이름)
+        return self.__weight # 실제로는 __weight에 저장된다.
 
-    @weight.setter
+    @weight.setter # @property를 지정한 후 부터 weight.setter, weight.getter, weight.deleter등을 사용할 수 있다. 이 라인은 weight속석의 setter를 지정한다.
     def weight(self, value):
         if value > 0:
-            self.__weight = value
+            self.__weight = value # 값이 0보다 클 때만 값으로 설정
         else:
-            raise ValueError('value must be > 0')
+            raise ValueError('value must be > 0') # 아닐경우 오류 발생 
 {% endhighlight %}
 
--
+- 무게를 잘못 입력하면 아래와 같이 오류가 발생됨
 {% highlight python %}
 >>> walnuts = LineItem('walnuts', 0, 10.00)
 Traceback (most recent call last):
@@ -497,95 +517,127 @@ ValueError: value must be > 0
 <hr>
 ### 프로퍼티 제대로 알아보기
 
--
+- 2.2에서 property기능이 추가되었지만 테커레이터는 2.4부터 사용할 수 있었다.
+- 내장된 property()는 사실상 클래스다.
+- 데코레이터로 주로 사용되는 함수이지만, 사실 클래스이다.
+  - 파이썬에서는 함수와 클래스는 서로 교환할 수 있는 경우가 많다고 함.
+  - 함수와 클래스는 모두 콜러블이고 객체를 생성하기 위한 new 연산자가 없으므로, 생성자를 호출하는 것은 팩토리 함수를 호출하는 것과 차이가 없다.
+
+- 테커레이터를 사용하는 방법 보다 나을 때가 있다.
+  - 뒤에서 설명할 프로퍼티 팩토리등.
+
+- property() 생성자의 형태
 {% highlight python %}
 property(fget=None, fset=None, fdel=None, doc=None)
 {% endhighlight %}
 
--
+- bulkfood_v2b.py: LineItem버전2와 동일하지만 데커레이터를 사용하지 않는 LineItem
+  - 함수 호출로 데터레이터를 사용하고 있다.
 {% highlight python %}
 class LineItem:
     def __init__(self, description, weight, price):
         self.description = description
         self.weight = weight
         self.price = price
-    def subtotal(self):
+
+    def subtotal(self): 
         return self.weight * self.price
-    def get_weight(self):
+
+    def get_weight(self): # getter 메서드를 구현했다. 2.2버전처럼 구현할때는 테커레이터를 사용했을때와 달리 메서들 이름이 속성이름으로 지정되지 않는다.
         return self.__weight
-    def set_weight(self, value):
+
+    def set_weight(self, value): # setter 메서드를 구현했다.
         if value > 0:
             self.__weight = value
         else:
             raise ValueError('value must be > 0')
-        weight = property(get_weight, set_weight)
+
+    weight = property(get_weight, set_weight) # weight를 속성명으로 지정하고 getter와 setter 메서드를 지정한다.
 {% endhighlight %}
 
 #### 객체 속성을 가리는 프로퍼티
--
+
+- 프로퍼티는 클래스 속성이다.
+- 실제로는 객체 내부 들어있는 속성에 대한 접근을 관리한다.
+- 객체와 클래스가 모두 동일한 이름의 속성을 가지고 있으면, 객체를 통해 속성에 접근할 때 객체 속성이 클래스 속성을 가린다.
+
+- 객체 속성이 클래스 데이터 속성을 가린다.
 {% highlight python %}
->>> class Class: #
+>>> class Class: # 클래스속성(data)과 프로퍼티속성(prop), 2개의 클래스 속성을 갖는 클래스를 정의 했다.
 ...     data = 'the class data attr'
 ...     @property
 ...     def prop(self):
 ...         return 'the prop value'
 ...
 >>> obj = Class()
->>> vars(obj) #
+>>> vars(obj) # vars()인수의 __dict__를 반환하므로 아무런 속성이 없음을 보여준다. 
 {}
->>> obj.data #
+>>> obj.data # obj.data를 읽으면 Class.data의 값을 가져온다.
 'the class data attr'
->>> obj.data = 'bar' #
->>> vars(obj) #
+>>> obj.data = 'bar' # obj.data에 값을 저장하면 객체 속성이 생성된다.
+>>> vars(obj) # vars()로 객체 속성 생성된 것을 확인할 수 있다.
 {'data': 'bar'}
->>> obj.data #
+>>> obj.data # obj.data를 읽으면 객체 속성의 값을 가져온다.
 'bar'
->>> Class.data #
+>>> Class.data # 하지만 Class.data 속성은 그대로다.
 'the class data attr'
 {% endhighlight %}
 
--
+- 객체 속성이 프로퍼티 속성을 가리지 않는다.
 {% highlight python %}
->>> Class.prop #
+>>> Class.prop # Class.prop는 게터 메서드를 통하지 않고 프로퍼티 객체 자체를 가져온다.
 <property object at 0x1072b7408>
->>> obj.prop #
+>>> obj.prop # obj.prop를 사용하면 게터 메서드가 실행된다.
 'the prop value'
->>> obj.prop = 'foo' #
+>>> obj.prop = 'foo' # prop속성에 값을 할당하면 에러가 발생한다.
 Traceback (most recent call last):
     ...
 AttributeError: can't set attribute
->>> obj.__dict__['prop'] = 'foo' #
->>> vars(obj) #
+>>> obj.__dict__['prop'] = 'foo' # obj.__dict__['prop']에 직접 할당하면 제대로 작동한다.
+>>> vars(obj) # obj객체에 data, prop 두 개의 속성이 있는 것을 볼 수 있다.
 {'prop': 'foo', 'attr': 'bar'}
->>> obj.prop #
+>>> obj.prop # obj.prop를 실행하면 여전히 게터 메서드가 실행된다. 겍체 속성이 생성되었어도 프로퍼티속성이 그대로 동작한다.
 'the prop value'
->>> Class.prop = 'baz' #
->>> obj.prop #
-'foo'
+>>> Class.prop = 'baz' # Class.prop를 덮어쓰면 프로퍼티 객체가 제거된다.
+>>> obj.prop # 프로퍼티 객체가 제거되었기 때문에 obj.prop를 호출해도 프로퍼티 속성이 동작하지 않는다.
+'foo' # 객체 속성값이 출력되는 것을 알 수 있다.
 {% endhighlight %}
 
--
+- 새로운 클래스 프로퍼티는 기존 객체 속성을 가린다.
 {% highlight python %}
->>> obj.data #
+>>> obj.data # obj.data는 객체의 data 속성을 가져온다. 
 'bar'
->>> Class.data #
+>>> Class.data # Class.data는 클래스의 데이터 속성을 가져온다. 
 'the class data attr'
->>> Class.data = property(lambda self: 'the "data" prop value')
->>> obj.data #
+>>> Class.data = property(lambda self: 'the "data" prop value') # Class.data를 새로운 프로퍼티로 덮어쓴다.
+>>> obj.data # obj.data는 객체의 data 속성이 아닌 프로퍼티 게터 메서드를 호출한다.
 'the "data" prop value'
->>> del Class.data #
->>> obj.data #
+>>> del Class.data # 프로퍼티를 제거한다.
+>>> obj.data # obj.data는 다시 객체의 data 속성을 가져온다.
 'bar'
 {% endhighlight %}
+
+- Note
+  - obj.attr 같은 표현식이 obj에서 시작해서 attr을 검색하는 것이 아니다.
+  - 일반적으로 obj.__class__에서 시작하고, attr이라는 프로퍼티가 클래스 안에 없을 때만 인터프리터가 obj 객체를 살펴본다.
+  - 이런 규칙은 모든 종류의 디스크립터(오버라이딩 디스크립터 포함)가 따른다.(디스크립터의 설명은 20장에서)
 
 #### 프로퍼티 문서화
 
--
+- __doc__속성
+  - help()함수나 IDE같은 도구가 프로퍼티에 대한 문서를 보여주려 할때 사용하는 프로퍼티 속성이다.
+
+- 프로퍼티를 함수 방식으로 사용할때
+  - doc 인수로 전달된 문자열을 받는다. 
+- 함수로 사용할때의 예
 {% highlight python %}
 weight = property(get_weight, set_weight, doc='weight in kilograms')
 {% endhighlight %}
 
--
+- 프로퍼티를 데커레이터 방식으로 사용할때
+  - 프로퍼티 데커레이터로 장식된 게터 메서드의 문서화 문자열(주석)이 프로퍼티 전체의 문서로 사용된다.
+
+- 데커레이터로 사용할 때의 예 
 {% highlight python %}
 class Foo:
     @property
@@ -601,59 +653,77 @@ class Foo:
 <hr>
 ### 프로퍼티 팩토리 구현하기
 
--
+- 두 개의 거의 동일한 getter/setter를 직접 구현하지 않고 LineItem의 weight와 price 속성이 0보다 큰 값만 받을 수 있도록 보호하는 문제를 해결한다.
+  - 이전 예제에서는 프로퍼티를 사용해서 weight를 0보다 큰 값만 받을수 있도록 했다.
+  - price 프로퍼티를 사용해서 0보다 큰 값만 받을 수 있도록 지정해야한다.
+  - 두 코드의 로직상 거의 동일할 것이다.
+  - 이런 문제를 프로퍼티 팩토리로 해결한다.
+
+- 프로퍼티 팩토리
+  - 이번 항목에서 설명하는 프로퍼티 팩토리는 팩토리 패턴의 팩토리 개념을 말한다.
+  - 하위 클래스에서 인스턴스를 결정하는 형태이다.
+  - 데커레이터를 사용해서 프로퍼티 팩토리를 구현할 수도 있다.
+    - 아주 복잡한 메타프로그래밍 기법이 필요하므로 21장에서 설명
+
+- bulkfood_v2prop.py: quantity()프로퍼티 팩토리 사용
+  - quantity는 저자가 만든 프로퍼티 클래스이다.
 {% highlight python %}
 class LineItem:
-    weight = quantity('weight')
-    price = quantity('price')
+    weight = quantity('weight') # 팩토리를 이용해서 첫 번째 프로퍼티 weight를 클래스 속성으로 정의한다.
+    price = quantity('price')  # price를 클래스 속성으로 정의한다.
 
     def __init__(self, description, weight, price):
         self.description = description
-        self.weight = weight
+        self.weight = weight # weight가 0이나 음수가 되지 않게 보장한다.
         self.price = price
 
     def subtotal(self):
-        return self.weight * self.price
+        return self.weight * self.price #
 {% endhighlight %}
 
--
+- LineItem에서 관리하는 속성의 이름을 전달한다. 
+  - quantity를 호출하는 시점에 weight 프로퍼티 속성은 존재하지 않는다.
 {% highlight python %}
 weight = quantity('weight')
 {% endhighlight %}
 
--
+- bulkfood_v2prop.py:quantity() 프로퍼티 팩토리
 {% highlight python %}
-def quantity(storage_name):
+def quantity(storage_name): # storage_name 인수로 각 프로퍼티를 어디에 저장할지 결정
 
-    def qty_getter(instance):
-        return instance.__dict__[storage_name]
+    def qty_getter(instance): # instance는 속성을 저장할 LineItem 객체를 가리킨다.
+        return instance.__dict__[storage_name] # 프로퍼티를 사용하면 무한히 재귀적으로 호출되므로, 프로퍼티를 우회하기 위해 instance.__dict__에서 직접 읽어온다. 
 
     def qty_setter(instance, value):
         if value > 0:
             instance.__dict__[storage_name] = value
         else:
             raise ValueError('value must be > 0')
-    return property(qty_getter, qty_setter)
+    return property(qty_getter, qty_setter) # 사용자 정의 프로퍼티 객체를 생성해서 반환한다.
 {% endhighlight %}
 
--
+- Note
+  - qty__setter()에서 프로퍼티 getter를 사용하면
+    - obj.getter -> qty_getter() -> obj.getter 루프를 재귀적으로 순환하게됨
+
+- bulkfood_v2prop.py: quantity() 프로퍼티 팩토리
 {% highlight python %}
 >>> nutmeg = LineItem('Moluccan nutmeg', 8, 13.95)
->>> nutmeg.weight, nutmeg.price
+>>> nutmeg.weight, nutmeg.price # 프로퍼티를 통해 weight와 price를 읽으므로 동일한 이름의 객체 속성을 가린다. 
 (8, 13.95)
->>> sorted(vars(nutmeg).items())
+>>> sorted(vars(nutmeg).items()) # 값을 저장하기 위해 사용되는 실제 객체 속성을 보여준다. 
 [('description', 'Moluccan nutmeg'), ('price', 13.95), ('weight', 8)]
 {% endhighlight %}
 
 <hr>
 ### 속성 제거 처리하기
 
--
+- 아래와 같은 방식으로 프로퍼티 속성을 제거하는 방법은 이미 보았다.
 {% highlight python %}
 del my_object.an_attribute
 {% endhighlight %}
 
--
+- blackknight.py:'몬티 파니튼과 성배'의 흑기사에서 영감을 얻었다.
 {% highlight python %}
 class BlackKnight:
     def __init__(self):
@@ -668,13 +738,13 @@ class BlackKnight:
         print('next member is:')
         return self.members[0]
 
-    @member.deleter
+    @member.deleter # delter
     def member(self):
         text = 'BLACK KNIGHT (loses {})\n-- {}'
         print(text.format(self.members.pop(0), self.phrases.pop(0)))
 {% endhighlight %}
 
--
+- 위 예제의 doctest
 {% highlight python %}
 >>> knight = BlackKnight()
 >>> knight.member
@@ -694,7 +764,8 @@ BLACK KNIGHT (loses another leg)
 -- All right, we'll call it a draw.
 {% endhighlight %}
 
--
+- property 함수를 이용할 때의 삭제 방법
+  - fdel 인수를 사용해서 제거자 함수를 설정한다.
 {% highlight python %}
 member = property(member_getter, fdel=member_deleter)
 {% endhighlight %}
@@ -702,47 +773,63 @@ member = property(member_getter, fdel=member_deleter)
 <hr>
 ### 속성을 처리하는 핵심 속성 및 함수
 
+- 여기까지 동적 속성을 처리하기 위해 사용한 내장함수와 특별 메서드를 정리한다. 
+
 #### 속성 처리에 영향을 주는 특별 속성
 
 - __class__
-
+  - 객체의 클래스에대한 참조이다.
+  - obj.__class__는 type(obj)와 같다.
+  - __getattr__()과 같은 특별 메서드는 객체의 클래스에서만 검색한다. 
 
 - __dict__
-
+  - 객체나 클래스의 쓰기가능 속성을 저장하는 매핑이다. 
+  - 임의의 새로운 속성을 언제든지 설정할 수 있다.
+  - 클래스에 __slots__속성이 있으면 이 속성은 없을 수도 있다.
 
 - __slots__
-
+  - 객체가 가질 수 있는 속성을 제하려고 클래스에 정의하는 속성이다.
+  - __slots__는 허용된 속성명을 담은 일종의 튜플이다.
+  - __dict__가 __slots__에 들어 있지 않으면 이 클래스의 객체는 __dict__를 가질 수 없다.
 
 #### 속성을 처리하는 내장 함수
 
 - dir([object])
+  - 대부분의 객체 속성을 나열한다.
 
 - getattr(object, name[, default])
+  - object에서 name 문자열로 식별된 속성을 가져온다.
 
 - hasattr(object, name)
+  - 해당 이름의 속성이 object에 있거나 상속 등의 메커니즘으로 가져올 수 있으면 True를 반환한다.
 
 - setattr(object, name, value)
+  - object가 허용하면 name 속성에 value를 할당한다.
 
 - vars([object])
 
 #### 속성을 처리하는 특별 메서드 
 
 - __delattr__(self, name)
-
+  - del 문을 이용해서 속성을 제거하려 할 때 호출된다.
+  - del obj.attr는 Class.__delattr__(obj, 'attr')을 호출한다.
 
 - __dir__(self)
-
+  - 속성을 나열하기 위해 객체에 dir()을 호출할 때 호출된다.
+  - dir(obj)하면 Class.__dir__(obj)가 호출된다.
 
 - __getattr__(self, name)
-
+  - obj, Class, Class의 슈퍼클래스를 검색해서 명명된 속성을 가져오려고 시도하다 실패할 때 호출된다.
 
 - __getattribute__(self, name)
-
+  - 특별 속성이나 메서드가 아닌 속성을 가져올 때 언제나 호출된다.
 
 - __gatattribute__ , and only when __gatattribute__ raises AttributeError . To
-
+  - AttributeError를 발생시킨 후에만 호출된다.
+  - 점 표기법과 getter(), setattr() 내장함수가 이 메서드를 호출한다.
 
 - __setattr__(self, name, value)
-
+  - 지명된 속성에 값을 설정할 때 언제나 호출된다. 
+  - 점 표기법과 setattr() 내장함수가 이 메서드를 호출한다.
 
 
