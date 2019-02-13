@@ -1,14 +1,22 @@
 ---
 layout: post
 title: "일급 함수 디자인 패턴"
-author: "Alghost"
+author: "Alghost","Badhorror"
 ---
 
-## 사례: 전략 패턴의 리팩토링
+## 사례: 전략(Strategy) 패턴의 리팩토링
+
+> function object를 사용하여 리펙토링하고 커맨드 패턴을 단순화
+
+> Strategy 패턴은 파이썬이 first class object를 사용하여 더 단순화되는 좋은 예다.
 
 ### 고전적인 패턴
 
 - Order(콘텍스트), Promotion(전략), FidelityPromo(구체적인 전략1), BulkItemPromo(구체적인 전략2) 등 으로 구성되는 패턴
+- 전자상거래 예
+    - Context : 계산 알고리즘을 서비스를 제공.(여러 알고리즘 중 프로모션 할인을 적용하도록 구성)
+    - Strategy : 공통적인 인터페이스. (프로모션이라는 추상클래스)
+    - Concrete Strategy : 전략의 구체적인 하위 클래스 중 하나.(프로모션 추상클래스를 받아서 구현된 알고리즘)
 
 #### 콘텍스트
 - 일부 계산을 서로 다른 알고리즘을 구현하는 교환 가능한 컴포넌트에 위임함으로써 서비스를 제공한다. 예를 들어 '주문'이라는 서비스에서 '프로모션'이라는 계산을 사용
@@ -60,6 +68,7 @@ Order(joe, banana_cart, fidelity_promo) # fidelity_promo 적용
 - 예를 들어 Order 객체에 대해 가장 좋은 할인 전략을 선택하는 '메타 전략'을 만든다고 가정했을 때 문제가 됨
 
 ### 최선의 전략 선택하기: 단순한 접근법
+
 {% highlight python %}
 def fidelity_promo(order):
     return order.total() * .05 if order.customer.fidelity >= 1000 else 0
@@ -75,6 +84,7 @@ joe = Customer('John Doe', 0)
 banana_cart = [LineItem('banana', 4, .5)]
 Order(joe, banana_cart, best_promo) # best_promo 적용
 {% endhighlight %}
+
 - 가독성도 좋고 제대로 작동하지만, 새로운 할인 전략을 추가하려면 함수를 코딩하고 이 함수를 promos 리스트에 추가해야함
 
 ### 모듈에서 전략 찾기
@@ -91,9 +101,11 @@ promos = [globals()[name] for name in globals()
 def best_promo(order):
     return max(promo(order) for promo in promos)
 {% endhighlight %}
+
 - 이처럼 globals()를 사용하여 모듈에 있는 *_promo()함수를 리스트에 추가하여 처리할 수 있음
 
 - 아래는 promotions 모듈을 내부 조사해서 만든 promos 리스트
+
 {% highlight python %}
 import inspects
 
@@ -106,13 +118,19 @@ def best_promo(order):
 
 <hr/>
 
-## 명령
+## 명령(Command)
+
+> argments로 전달된 함수를 사용하는 디자인 패턴
 
 - Application(클라이언트), Menu(실행기), Command(명령), OpenCommand(구체적인 명령1), PasteCommand(구체적인 명령2)등으로 이뤄진 패턴
 - 연산을 실행하는 객체와 연산을 구현하는 객체를 분리하는 방법
+     - Receiver : 구현하는 제공자 객체
+     - Invoker : 오퍼레이션을 호출하는 객체
 - 이 때 execute()라는 함수이름으로 모두 일치해서 구체적인 명령을 만들 수도 있지만
 - 객체 자체를 호출가능한 형태로 만들면 더 간결하게 구현할 수 있음
 - __call__()함수를 구현해서 호출가능한 객체를 만들 수 있음
+    - 모든 파이썬의 callabe 한 객체는 단일 메소드 인터페이스를 구현하며 그 메소드 이름은 call이다.
+
 {% highlight python %}
 class MacroCommand:
     def __init__(self, commands):
