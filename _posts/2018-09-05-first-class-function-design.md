@@ -1,8 +1,10 @@
 ---
 layout: post
 title: "일급 함수 디자인 패턴"
-author: "Alghost","Badhorror"
+author: "Alghost, Badhorror"
 ---
+
+# 일급 함수 디자인 패턴
 
 ## 사례: 전략(Strategy) 패턴의 리팩토링
 

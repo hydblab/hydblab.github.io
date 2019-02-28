@@ -27,9 +27,9 @@ class Gizmo:
         print('Gizmo id: %d' % id(self))
 
 >>> x = Gizmo()
-Gizmo id: 4301489152
->>> y = Gizmo() * 10
-Gizmo id: 4301489432
+Gizmo id: 4301489152 # The output Gizmo id: ... is a side effect of creating a Gizmo instance.
+>>> y = Gizmo() * 10 # 곱하기에 예외 발생
+Gizmo id: 4301489432 # 곱셈 전 인스턴스 생성 확인 가능 이후 오류 즉 y는 생성되지 않음
 Traceback (most recent call last):
     File "<stdin>", line 1, in <module>
 TypeError: unsupported operand type(s) for \*: 'Gizmo' and 'int'
@@ -38,13 +38,13 @@ TypeError: unsupported operand type(s) for \*: 'Gizmo' and 'int'
 {% endhighlight %}
 
 #### 정체성, 동질성, 별명
-- 정체성
+- 정체성(Identity)
   - 생성된 객체의 메모리 주소를 말한다.
 
-- 동질성
+- 동질성(equality)
   - 값이 같은 것과 같은 객체를 가리키는 변수가 두 개 인것은 다르다.
 
-- 별명
+- 별명(aliases)
   - 객체 주소를 가리키는 변수를 말한다.
 
 - id()함수로 변수에 담긴 객체의 메모리 주소를 확인 할 수 있다.
@@ -56,20 +56,20 @@ TypeError: unsupported operand type(s) for \*: 'Gizmo' and 'int'
 
 {% highlight python %}
 >>> charles = {'name': 'Charles L. Dodgson', 'born': 1832}
->>> lewis = charles
+>>> lewis = charles # 별명
 >>> lewis is charles
 True
->>> id(charles), id(lewis)
+>>> id(charles), id(lewis) # 두개가 같음 확인 가능
     (4300473992, 4300473992)
-    >>> lewis['balance'] = 950
-    >>> charles
+>>> lewis['balance'] = 950 # lewis 추가는 charles에 추가와 같다
+>>> charles
 {'name': 'Charles L. Dodgson', 'balance': 950, 'born': 1832}
 {% endhighlight %}
 
 - 값이 같은 것과 같은 객체를 가리키는 것은 다르다.
 
 {% highlight python %}
->>> alex = {'name': 'Charles L. Dodgson', 'born': 1832, 'balance': 950}
+>>> alex = {'name': 'Charles L. Dodgson', 'born': 1832, 'balance': 950} -- charles와 같은 값 오브젝트 생성
 >>> alex == charles
 True
 >>> alex is not charles
@@ -77,14 +77,16 @@ True
 {% endhighlight %}
 
 #### ==, is 연산자 선택
+
 - == 연산자는 값 비교 연산자 이다.
   - a==b -> a.__eq__(b)와 같다. (syntactic sugar)
 - is 연산자는 객체 주소를 비교한다.
   - == 연산자와 달리 특별 메소드를 호출 하지 않기 때문에 더 빠르다.
-  - is 연산자는 오버로딩 할 수 없다. 
+  - is 연산자는 오버로딩 할 수 없다.
   - 객체가 None인지 확인하려면 is None, is not None 을 사용한다.
 
 #### 튜플의 상대적 불변성
+
 - 튜플도 객체에 대한 참조를 갖는 자료 형식이다.
   - lists, dicts, sets 등도 객체의 참조를 담는다.
 - 튜플 구성 객체의 메모리 주소는 변경 할 수 없다.
@@ -92,7 +94,7 @@ True
 - t1[0]/1, t1[1]/3, t1[2]/[30, 40]을 지칭하고 있고 t1은 불변 객체이지만 t[2]는 가변 객체이기 때문에 메모리를 참조해 수정할 수 있다.
 
 {% highlight python %}
->>> t1 = (1, 2, [30, 40])
+>>> t1 = (1, 2, [30, 40]) # t1 is immutable, but t1[-1] is mutable
 >>> t2 = (1, 2, [30, 40])
 >>> t1 == t2
 True
@@ -113,12 +115,12 @@ False
 
 {% highlight python %}
 >>> l1 = [3, [55, 44], (7, 8, 9)]
->>> l2 = list(l1)
+>>> l2 = list(l1) # list(l1) creates a copy of l1
 >>> l2
 [3, [55, 44], (7, 8, 9)]
 >>> l2 == l1
 True
->>> l2 is l1
+>>> l2 is l1 # to two different objects.
 False
 {% endhighlight %}
 
@@ -164,13 +166,15 @@ print('l2:', l2)
 {% endhighlight %}
 
 #### 깊은 복사
-- deepcopy 모듈을 사용해서 메모리를 모두 복사한다. 
-- 순환 참조된 데이터 까지 복사 할 수 있다. 
+- deepcopy 모듈을 사용해서 메모리를 모두 복사한다.
+- 순환 참조된 데이터 까지 복사 할 수 있다.
 - 순환 참조 와 같은 이유로 깊은 복사를 직접 구현하는 것은 쉽지 않다.
 
 - 깊은 복사의 예
   - 예제 class
+
   {% highlight python %}
+
 class Bus:
 
     def __init__(self, passengers=None):
@@ -184,10 +188,13 @@ class Bus:
 
     def drop(self, name):
         self.passengers.remove(name)
+
 {% endhighlight %}
 
-  - 얕은 복사와 깊은 복사의 차이 
-  {% highlight python %}
+  - 얕은 복사와 깊은 복사의 차이
+
+{% highlight python %}
+
 >>> import copy
 >>> bus1 = Bus(['Alice', 'Bill', 'Claire', 'David'])
 >>> bus2 = copy.copy(bus1) # 얕은 복사
@@ -198,13 +205,15 @@ class Bus:
 >>> bus2.passengers
 ['Alice', 'Claire', 'David'] # bus2에서도 drop 되었다.
 >>> id(bus1.passengers), id(bus2.passengers), id(bus3.passengers)
-(4302658568, 4302658568, 4302657800)
+(4302658568, 4302658568, 4302657800) # bus1,2 동일한 페신저 확인가능하다.
 >>> bus3.passengers
 ['Alice', 'Bill', 'Claire', 'David'] # bus3에서는 drop 되지 않았다.
 {% endhighlight %}
 
   - deepcopy모듈을 이용한 순환 참조데이터 복사 예
-  {% highlight python %}
+
+{% highlight python %}
+
 >>> a = [10, 20]
 >>> b = [a, 30]
 >>> a.append(b)
@@ -214,13 +223,17 @@ class Bus:
 >>> c = deepcopy(a)
 >>> c
 [10, 20, [[...], 30]]
+
 {% endhighlight %}
 
 <hr>
+
 ## 참조로서의 함수 매개변수
+
 - 파이썬에서 매개변수 호출 방식은 공유 호출(call by sharing) 방식을 기본으로 사용한다.
     - 넘겨 받은 매개변수는 레퍼런스로 동작한다. call 주체가 알려준 메모리 공간의 값이 변경된다.
-- 8-11 예제와 같이 넘겨준 매개변수의 자료형에 따라 상이하게 동작한다(덕타이핑)
+    - 매개변수는 펑션에서 기존 오브젝트 별명이다.
+- 8-11 예제와 같이 넘겨준 매개변수의 자료형에 따라 상이하게 동작한다(덕타이핑)(Mutable, Immutable)
 
 {% highlight python %}
 >>> def f(a, b):
@@ -237,7 +250,7 @@ class Bus:
 >>> f(a, b)
 [1, 2, 3, 4]
 >>> a, b
-([1, 2, 3, 4], [3, 4]) # a 리스트가 변경되었다. 
+([1, 2, 3, 4], [3, 4]) # a 리스트가 변경되었다.
 >>> t = (10, 20)
 >>> u = (30, 40)
 >>> f(t, u)
@@ -251,16 +264,15 @@ class Bus:
 - 가변형을 매개변수 기본값으로 사용했을 때의 예
   - 기본 값을 공유한다.
     - 기본 값이 함수가 선언 될 때 평가되기 때문이다.(예를들어 모듈이 로드 될 때)
-    - 평가된 기본 값은 함수 객체의 속성이 된다. 
+    - 평가된 기본 값은 함수 객체의 속성이 된다.
 
   - class
   {% highlight python %}
 class HauntedBus:
     """A bus model haunted by ghost passengers"""
 
-    def __init__(self, passengers=[]):
-        self.passengers = passengers # 매개 변수가 넘어오지 않았을 때 파라미터 변수를 기본 객체로 사용한다.
-                                     # self.passengers는 passengers 객체의 별명이 된다. 
+    def __init__(self, passengers=[]):# 매개 변수가 넘어오지 않았을 때 비어있는 기본 리스트 오브젝트 변수를 사용한다.
+        self.passengers = passengers # self.passengers는 passengers 객체의 별명이 된다.
     def pick(self, name):
         self.passengers.append(name) # 비어있는 파라미터 객체를 조작한다.
 
@@ -297,6 +309,7 @@ True
   {% highlight python %}
 >>> dir(HauntedBus.__init__) # doctest: +ELLIPSIS
 ['__annotations__', '__call__', ..., '__defaults__', ...]
+
 >>> HauntedBus.__init__.__defaults__
 (['Carrie', 'Dave'],) # __defaults__에 값이 들어있다
 {% endhighlight %}
@@ -310,7 +323,7 @@ True
 ### 가변 매개변수 문제에 대한 방어적 프로그래밍
 - 가변 매개변수의 기본값은 None으로 사용
   - __init__이 None일때 빈 리스트를 새로 생성한다.
-  - None이 아닐때 사용자가 넘겨준 변수을 레퍼런스로 사용기 때문에 사용자가 넘겨준 데이터가 로직에 따라 변경된다. 
+  - None이 아닐때 사용자가 넘겨준 변수을 레퍼런스로 사용기 때문에 사용자가 넘겨준 데이터가 로직에 따라 변경된다.
 
 - call by value 처럼 사용하고 싶다면?
   - __init__에서 None이 아닐경우 얕은복사로 값을 복사해서 쓴다.
@@ -319,12 +332,14 @@ True
 - 사용자의 데이터가 바뀌는 예
 
 {% highlight python %}
+
 >>> basketball_team = ['Sue', 'Tina', 'Maya', 'Diana', 'Pat']
 >>> bus = TwilightBus(basketball_team)
 >>> bus.drop('Tina')
 >>> bus.drop('Pat')
 >>> basketball_team
 ['Sue', 'Maya', 'Diana'] # 사용자의 원본 데이터가 비뀌었다.
+
 {% endhighlight %}
 
 - 기본값을 None으로 사용했을 때의 예
@@ -346,7 +361,7 @@ class TwilightBus:
         self.passengers.remove(name)
 {% endhighlight %}
 
-- 사용자의 데이터를 복사하는 예 
+- 사용자의 데이터를 복사하는 예
   - 가변 매개변수를 인자로 준다면 __init__을 오버라이드 해줘야 할 것 같은데, 좀 더 편리한 방법은 못찾았다.
 
 {% highlight python %}
@@ -368,7 +383,7 @@ def __init__(self, passengers=None):
     - 순한참조는unreachable로 판단한다.
 
   - **주의** : CPython은 refcount가 0인 객체의 __del__ 을 호출해서 삭제한다.
-    Chython 버전별로 동작은 상이하므로 하므로 refcount가 있고 메모리가 바로 해제되지 않는다 정도만 알아두자. 
+    Chython 버전별로 동작은 상이하므로 하므로 refcount가 있고 메모리가 바로 해제되지 않는다 정도만 알아두자.
 
 {% highlight python %}
 >>> import weakref
@@ -389,7 +404,9 @@ False
 {% endhighlight %}
 
 <hr>
+
 ## 약한참조
+
 - 객체를 참조하고 있어도 refcount에는 반영되지 않는다.
 - 약한참조를 하고있다고 해도 refcount에 반영되지 않기 때문에 가비지컬렉션된다.
 - 캐시 등에 주로 쓰이는 형태 이다.
@@ -405,17 +422,17 @@ False
 >>> wref()
 {0, 1}
 >>> a_set = {2, 3, 4} # a_set 변수를 {2, 3, 4}로 rebinding
->>> wref()
+>>> wref() # a_set 은 {0,1}을 참조하지 않으므로 ref count는 0
 {0, 1}
->>> wref() is None # {0, 1} referent가 제거 되었다.
-False
 >>> wref() is None
+False
+>>> wref() is None # {0, 1} referent가 제거 되었다.
 True
 {% endhighlight %}
 
 ### WeakValueDictionary
 - WeakValueDictionary
-- 약한 참조를 값으로 가지는 가변 매핑 클래스이다. 
+- 약한 참조를 값으로 가지는 가변 매핑 클래스이다.
   - 매핑된 가변 객체가 garbage collect되면 매핑되었던 키가 사라진다.
   - 일반적으로 캐시 구현을 위해 사용한다.
   - 예제에서 for loop를 이용할때 전역변수를 사용했기 때문에(참조) 삭제되지 않은 요소가 남을 수 있다.
@@ -445,7 +462,7 @@ class Cheese:
 >>> del catalog # 객체 리스트를 참조하던 변수를 삭제한다.
 >>> sorted(stock.keys()) # 위 loop의 cheese가 루프 동작 마지막 요소를 참조하고 있어 garbage collection되지 못한 객체가 있다.
 ['Parmesan']
->>> del cheese # 삭제한다. 
+>>> del cheese # 삭제한다.
 >>> sorted(stock.keys()) # garbage collection 되었다.
 []
 {% endhighlight %}
